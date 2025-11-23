@@ -4,9 +4,9 @@ from discord.ext import commands
 import datetime
 import locale
 
-ver = "1.1.0"
+ver = "1.1.1"
 
-with open("SquadronBot.token") as f:
+with open("/home/py/DiscordBot_Server/SquadronBot.token") as f:
   TOKEN = f.read()
 
 
