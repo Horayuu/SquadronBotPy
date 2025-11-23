@@ -5,7 +5,7 @@ import datetime
 import locale
 
 
-ver = "1.2.0"
+ver = "1.2.1"
 try:
   with open("/home/py/DiscordBot_Server/SquadronBot.token") as f:
     TOKEN = f.read()
