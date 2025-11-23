@@ -4,7 +4,7 @@ from discord.ext import commands
 import datetime
 import locale
 
-ver = "1.1.1"
+ver = "1.1.2"
 
 with open("/home/py/DiscordBot_Server/SquadronBot.token") as f:
   TOKEN = f.read()
@@ -129,7 +129,7 @@ async def squadron(
 
     # --- メッセージ作成 ---
     # 日程1
-    msg = f"クラン戦募集、参加できる日程にリアクションをつけてください\n"
+    msg = f"@here クラン戦募集、参加できる日程にリアクションをつけてください\n"
     ts1_str = create_timestamp_str(schedule1)
     msg += f":one: {ts1_str} **BR {br1}**\n"
 
