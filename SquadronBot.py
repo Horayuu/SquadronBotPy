@@ -4,10 +4,23 @@ from discord.ext import commands
 import datetime
 import locale
 
-ver = "1.1.2"
 
-with open("/home/py/DiscordBot_Server/SquadronBot.token") as f:
-  TOKEN = f.read()
+ver = "1.2.0"
+try:
+  with open("/home/py/DiscordBot_Server/SquadronBot.token") as f:
+    TOKEN = f.read()
+except Exception as e:
+  print(e)
+
+try:
+  import requestBR
+  BRlist = requestBR.main()
+except ImportError:
+  print("ImportError!!")
+  BRlist = None
+except Exception as e:
+  print(e)
+
 
 
 # ロケールを日本語に設定（曜日などを日本語表記にするため）
@@ -20,7 +33,7 @@ except locale.Error:
         pass # 設定できない場合は無視
 
 # Botの設定
-MY_GUILD = discord.Object(id=1441810392790728788) # テストするサーバーID（同期を早くするため推奨）
+MY_GUILD = discord.Object(id=1441404531463422014) # テストするサーバーID（同期を早くするため推奨）
 
 class MyClient(discord.Client):
     def __init__(self, *, intents: discord.Intents):
@@ -140,6 +153,29 @@ async def squadron(
 
     # 送信
     await interaction.response.send_message(msg)
+
+@client.tree.command(name="br_list", description="現在のBRローテーション表を表示します")
+async def br_list(interaction: discord.Interaction):
+    await interaction.response.defer()
+
+    if requestBR is None:
+        await interaction.followup.send("❌ エラー: requestBR モジュールがありません。", ephemeral=True)
+        return
+
+    try:
+        # requestBRからリストを取得
+        br_data_list = requestBR.main()
+
+        if not br_data_list:
+            await interaction.followup.send("BR情報の取得結果が空でした。")
+            return
+
+        # リストを改行で結合して表示
+        formatted_text = "\n".join(br_data_list)
+        await interaction.followup.send(f"```{formatted_text}```")
+
+    except Exception as e:
+        await interaction.followup.send(f"エラーが発生しました:\n{e}", ephemeral=True)
 
 # Bot起動
 client.run(TOKEN)
