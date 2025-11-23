@@ -4,11 +4,11 @@ from discord.ext import commands
 import datetime
 import locale
 
-ver = "1.0.1"
+ver = "1.1.0"
 
-with open "SquadronBot.token" as f:
-  f.read()
-token = tokenfile
+with open("SquadronBot.token") as f:
+  TOKEN = f.read()
+
 
 # ロケールを日本語に設定（曜日などを日本語表記にするため）
 try:
@@ -20,7 +20,6 @@ except locale.Error:
         pass # 設定できない場合は無視
 
 # Botの設定
-TOKEN = token
 MY_GUILD = discord.Object(id=1441810392790728788) # テストするサーバーID（同期を早くするため推奨）
 
 class MyClient(discord.Client):
