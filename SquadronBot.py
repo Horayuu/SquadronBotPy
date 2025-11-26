@@ -5,10 +5,12 @@ import datetime
 import locale
 
 
-ver = "1.2.1"
+ver = "1.2.2"
 try:
   with open("/home/py/DiscordBot_Server/SquadronBot.token") as f:
     TOKEN = f.read()
+  with open("/home/py/DiscordBot_Server/dev_id") as f:
+    dev_id_file = f.read().strip()
 except Exception as e:
   print(e)
 
@@ -80,20 +82,20 @@ async def date_autocomplete(
     """現在から7日分の日付を選択肢として返すオートコンプリート"""
     choices = []
     now = datetime.datetime.now()
-    
+
     for i in range(7):
         # 日付をずらす
         date_obj = now + datetime.timedelta(days=i)
         # 表示用テキスト: 例 "11/23 (土)"
         label = date_obj.strftime("%m/%d (%a)")
-        
+
         # 値として渡すテキスト: パースしやすい形式 "YYYY-MM-DD"
         # 実際の募集時間は、一旦「21:00」固定として処理する例にします
         # (必要ならオートコンプリートの選択肢自体を "11/23 21:00", "11/23 22:00" と増やすことも可能)
         value_str = date_obj.strftime("%Y-%m-%d")
-        
+
         choices.append(app_commands.Choice(name=label, value=value_str))
-    
+
     return choices
 
 # --- コマンド定義 ---
@@ -111,10 +113,10 @@ async def date_autocomplete(
     br2=br_autocomplete
 )
 async def squadron(
-    interaction: discord.Interaction, 
-    schedule1: str, 
-    br1: str, 
-    schedule2: str = None, 
+    interaction: discord.Interaction,
+    schedule1: str,
+    br1: str,
+    schedule2: str = None,
     br2: str = None
 ):
     # --- バリデーション (条件付き必須チェック) ---
@@ -131,10 +133,10 @@ async def squadron(
         # 時間は便宜上 21:00 (JST) と仮定してセットします
         dt = datetime.datetime.strptime(date_str, "%Y-%m-%d")
         dt = dt.replace(hour=23, minute=0, second=0)
-        
+
         # UNIXタイムスタンプに変換
         timestamp = int(dt.timestamp())
-        
+
         # Discord形式の文字列を返す
         # <t:TIMESTAMP:f> = 年月日 時間
         # <t:TIMESTAMP:R> = 相対時間 (あと〇時間)
@@ -176,6 +178,34 @@ async def br_list(interaction: discord.Interaction):
 
     except Exception as e:
         await interaction.followup.send(f"エラーが発生しました:\n{e}", ephemeral=True)
+
+
+
+def is_owner_check():
+    async def predicate(interaction: discord.Interaction):
+        DEV_ID = int(dev_id_file)
+        return interaction.user.id == DEV_ID
+    return app_commands.check(predicate)
+
+@client.tree.command(name="sync", description="開発者用: コマンドツリーの同期")
+@is_owner_check() # ★オーナーチェック
+async def sync(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+
+    # 1. テストサーバーに同期 (即時反映)
+    client.tree.copy_global_to(guild=MY_GUILD)
+    synced_guild = await client.tree.sync(guild=MY_GUILD)
+    # 2. グローバル同期 (全サーバーに反映し、古いコマンドを削除)
+    # これが setup_hook にあった「await self.tree.sync()」に相当します
+    synced_global = await client.tree.sync()
+    response_msg = (
+        "✅ コマンドの同期が完了しました。\n"
+        f"・**テストギルド（{MY_GUILD.id}）**: {len(synced_guild)} 個のコマンドを同期\n"
+        f"・**グローバル**: {len(synced_global)} 個のコマンドを同期 (反映には時間がかかります)"
+    )
+
+    await interaction.followup.send(response_msg, ephemeral=True)
+
 
 # Bot起動
 client.run(TOKEN)
