@@ -3,9 +3,9 @@ from discord import app_commands
 from discord.ext import commands
 import datetime
 import locale
+import re,os
 
-
-ver = "1.2.4"
+ver = "1.3.0"
 try:
   with open("/home/py/DiscordBot_Server/SquadronBot.token") as f:
     TOKEN = f.read()
@@ -16,14 +16,56 @@ except Exception as e:
 
 try:
   import requestBR
-  BRlist = requestBR.main()
 except ImportError:
   print("ImportError!!")
-  BRlist = None
+  requestBR = "Import_Error"
 except Exception as e:
   print(e)
 
+async def get_cache_br():
+  #キャッシュされたBRデータがないか確認
+  #キャッシュ期限がまだあるならそのまま返す、期限切れorデータがない場合は更新/作成する
+  now = datetime.datetime.now()
+  use_cache = False
+  cached_lines = []
+  if os.path.exists("/home/py/DiscordBot_Server/br_cache"):
+    try:
+      with open("/home/py/DiscordBot_Server/br_cache") as f:
+        cached_lines = f.readlines()
+      if cached_lines:
+        last_line = cached_lines[-1] # 最終行を取得
+        pattern = r"\d{2}/\d{2} \~ (\d{2}/\d{2})" #r"~\s*(\d{1,2}/\d{1,2})"
+        match = re.search(pattern, last_line) #正規表現で日付を抽出 ("12/26 ~ 12/31 BR 4.7" から "12/31" を取る)
+        #print(f"last_line:{last_line},\nmatch:{match},\nmatch.group(1):{match.group(1)}") #DEBUG
+      if match:
+        end_date_str = match.group(1) # "12/31"
+        year=now.year
+        end_date_str= f"{end_date_str}/{year}"
+        end_date = datetime.datetime.strptime(end_date_str, "%m/%d/%Y")
 
+        #年跨ぎの補正
+        if now.month == 1 and end_date.month == 12:
+          end_date = end_date.replace(year=now.year - 1)
+        end_date = end_date.replace(hour=23, minute=59, second=59)
+        if now <= end_date: #現在時刻が期限内ならキャッシュを使う
+          use_cache = True
+      #
+    except Exception as e:
+      print(f"キャッシュ読み込みエラー: {e}")
+  if use_cache and cached_lines: #キャッシュを使用
+    print(f"/br_list: キャッシュを使用します [有効期限/現在:{end_date}/{now}]")
+    return cached_lines
+  if requestBR is None: #インポートエラー時
+    return "❌ エラー: requestBR モジュールが見つかりませんでした。\n可能であれば開発者へ連絡してください"
+  print("/br_list: データを新規取得/更新します")
+  new_data = requestBR.main()
+  if new_data: #ファイルへ保存
+    try:
+      with open("/home/py/DiscordBot_Server/br_cache", "w", encoding="utf-8") as f:
+        f.write("\n".join(new_data))
+    except Exception as e:
+      print(f"キャッシュ保存エラー: {e}")
+  return new_data
 
 # ロケールを日本語に設定（曜日などを日本語表記にするため）
 try:
@@ -159,13 +201,14 @@ async def br_list(interaction: discord.Interaction):
 
     try:
         # requestBRからリストを取得
-        br_data_list = requestBR.main()
+        br_data_list = await get_cache_br() #requestBR.main()
 
         if not br_data_list:
             await interaction.followup.send("データ取得に失敗:BR情報が取得できませんでした", ephemeral=True)
             return
 
         # リストを改行で結合して表示
+        br_data_list = [s.rstrip() for s in br_data_list]
         formatted_text = "\n".join(br_data_list)
         await interaction.followup.send(f"```{formatted_text}```")
 

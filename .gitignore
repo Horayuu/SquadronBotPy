@@ -1,6 +1,7 @@
 #Ignore token file
 /SquadronBot.token
 /dev_id
+/br_cache
 __pycache__/
 *.pyc
 *.sh

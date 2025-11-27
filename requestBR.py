@@ -120,10 +120,7 @@ def Align(extracted_block: str) -> list[str]:
 def main():
   extracted_block = Get_web_response()
   aligned_data = Align(extracted_block)
-  return extracted_block,aligned_data #extracted_block,
-  #for i in aligned_data:
-  #   print(i)
-
+  return aligned_data
 def debug():
    extracted_block,aligned_data=main()
    print(f"extracted_block:{extracted_block}")
@@ -131,5 +128,5 @@ def debug():
 
 
 if __name__ == "__main__":
-    #print(main())
-    debug()
+    print(main())
+    #debug()
