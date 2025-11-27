@@ -2,11 +2,14 @@ import requests,re
 from bs4 import BeautifulSoup
 
 url = "https://forum.warthunder.com/t/season-schedule-for-squadron-battles/4446/1"
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+}
 
 def Get_web_response():
  try:
     # 1. ウェブページを取得
-    response = requests.get(url, timeout=10)
+    response = requests.get(url, headers=headers, timeout=10)
     response.raise_for_status()
     # 2. Beautiful Soupで解析
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -117,9 +120,16 @@ def Align(extracted_block: str) -> list[str]:
 def main():
   extracted_block = Get_web_response()
   aligned_data = Align(extracted_block)
-  return aligned_data
+  return extracted_block,aligned_data #extracted_block,
   #for i in aligned_data:
   #   print(i)
-  
+
+def debug():
+   extracted_block,aligned_data=main()
+   print(f"extracted_block:{extracted_block}")
+   print(f"aligned_data:{aligned_data}")
+
+
 if __name__ == "__main__":
-    print(main())
+    #print(main())
+    debug()

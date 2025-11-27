@@ -5,7 +5,7 @@ import datetime
 import locale
 
 
-ver = "1.2.3"
+ver = "1.2.4"
 try:
   with open("/home/py/DiscordBot_Server/SquadronBot.token") as f:
     TOKEN = f.read()
@@ -35,7 +35,7 @@ except locale.Error:
         pass # 設定できない場合は無視
 
 # Botの設定
-MY_GUILD = discord.Object(id=1441404531463422014) # テストするサーバーID（同期を早くするため）
+MY_GUILD = discord.Object(id=1441810392790728788) # テストするサーバーID（同期を早くするため）
 
 class MyClient(discord.Client):
     def __init__(self, *, intents: discord.Intents):
@@ -154,7 +154,7 @@ async def br_list(interaction: discord.Interaction):
     await interaction.response.defer()
 
     if requestBR is None:
-        await interaction.followup.send("❌ エラー: requestBR モジュールがありません。", ephemeral=True)
+        await interaction.followup.send("❌ エラー: requestBR モジュールが見つかりませんでした。\n可能であれば開発者へ連絡してください", ephemeral=True)
         return
 
     try:
@@ -162,7 +162,7 @@ async def br_list(interaction: discord.Interaction):
         br_data_list = requestBR.main()
 
         if not br_data_list:
-            await interaction.followup.send("BR情報の取得結果が空でした。")
+            await interaction.followup.send("データ取得に失敗:BR情報が取得できませんでした", ephemeral=True)
             return
 
         # リストを改行で結合して表示
@@ -200,6 +200,8 @@ async def sync(interaction: discord.Interaction):
     await interaction.followup.send(response_msg, ephemeral=True)
 
 @sync.error
+
+
 async def sync_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     # チェックに失敗した場合(CheckFailure)
     if isinstance(error, app_commands.CheckFailure):
