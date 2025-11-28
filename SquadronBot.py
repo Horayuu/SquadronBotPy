@@ -3,9 +3,9 @@ from discord import app_commands
 from discord.ext import commands
 import datetime
 import locale
-import re,os
+import re,os,sys
 
-ver = "1.3.0"
+ver = "1.3.1"
 try:
   with open("/home/py/DiscordBot_Server/SquadronBot.token") as f:
     TOKEN = f.read()
@@ -78,11 +78,15 @@ except locale.Error:
 
 # Botの設定
 MY_GUILD = discord.Object(id=1441810392790728788) # テストするサーバーID（同期を早くするため）
+LOG_CHANNEL_ID = 1443851237220024341  # ログを送信するチャンネルID
 
-class MyClient(discord.Client):
-    def __init__(self, *, intents: discord.Intents):
-        super().__init__(intents=intents)
-        self.tree = app_commands.CommandTree(self)
+def is_target_channel(ctx):
+    return ctx.channel.id == LOG_CHANNEL_ID
+
+class MyClient(commands.Bot): #discord.Client→commands.Bot
+    def __init__(self, *, intents: discord.Intents, command_prefix: str):
+        super().__init__(intents=intents, command_prefix=command_prefix)
+        #self.tree = app_commands.CommandTree(self) ##不要
 
     async def setup_hook(self):
         #コマンドをテストサーバーに即時反映
@@ -90,8 +94,18 @@ class MyClient(discord.Client):
         await self.tree.sync(guild=MY_GUILD)
 
 intents = discord.Intents.default()
-client = MyClient(intents=intents)
+intents.message_content = True
+client = MyClient(intents=intents, command_prefix='!')
 
+@client.event
+async def on_ready():
+    print(f'Logged in as {client.user} (ID: {client.user.id})')
+    print('------')
+    if LOG_CHANNEL_ID is None:
+        print("警告: LOG_CHANNEL_ID が設定されていません。ログメッセージは送信されません。")
+    else:
+        log_msg = f"[INFO] Botが起動しました。バージョン: {ver}"
+        await send_log_message(log_msg)
 # BRリスト
 BR_CHOICES = [
     "4.7", "5.0", "5.3", "5.7", "6.0", "6.3", "6.7","7.0", "7.3",
@@ -157,6 +171,8 @@ async def squadron(
 ):
     # --- バリデーション (条件付き必須チェック) ---
     if schedule2 is not None and br2 is None:
+        log_msg = f"[ERROR] {interaction.user.display_name} さんが /squadron コマンドを使用しましたが、日程2に対してBR2が未設定でした。"
+        #await send_log_message(log_msg)
         await interaction.response.send_message(
             "❌ **エラー**: 日程2を設定する場合は、BR2も選択してください。", 
             ephemeral=True
@@ -179,6 +195,8 @@ async def squadron(
 
     # --- メッセージ作成 ---
     # 日程1
+    log_msg = f"[INFO] {interaction.user.display_name} さんが /squadron コマンドを使用しました。"
+
     msg = f"@here クラン戦募集、参加できる日程にリアクションをつけてください\n"
     ts1_str = create_timestamp_str(schedule1)
     msg += f":one: {ts1_str} **BR {br1}**\n"
@@ -189,13 +207,16 @@ async def squadron(
         msg += f":two: {ts2_str} **BR {br2}**"
 
     # 送信
+    await send_log_message(log_msg)
     await interaction.response.send_message(msg)
 
 @client.tree.command(name="br_list", description="現在のBRローテーション表を表示します")
 async def br_list(interaction: discord.Interaction):
+    log_msg = f"[INFO] {interaction.user.display_name} さんが /br_list コマンドを使用しました。"
     await interaction.response.defer()
 
     if requestBR is None:
+        log_msg = f"[FATAL] {interaction.user.display_name} さんが /br_list コマンドを使用しましたが、requestBR モジュールが見つかりませんでした。"
         await interaction.followup.send("❌ エラー: requestBR モジュールが見つかりませんでした。\n可能であれば開発者へ連絡してください", ephemeral=True)
         return
 
@@ -204,6 +225,7 @@ async def br_list(interaction: discord.Interaction):
         br_data_list = await get_cache_br() #requestBR.main()
 
         if not br_data_list:
+            log_msg = f"{interaction.user.display_name} さんが /br_list コマンドを使用しましたが、データ取得に失敗しました。\nJSONデータが取得できません。"
             await interaction.followup.send("データ取得に失敗:BR情報が取得できませんでした", ephemeral=True)
             return
 
@@ -211,8 +233,10 @@ async def br_list(interaction: discord.Interaction):
         br_data_list = [s.rstrip() for s in br_data_list]
         formatted_text = "\n".join(br_data_list)
         await interaction.followup.send(f"```{formatted_text}```")
-
+        await send_log_message(log_msg)
     except Exception as e:
+        log_msg = f"[FATAL] {interaction.user.display_name} さんが /br_list コマンドを使用しましたが、エラーが発生しました:\n{e}"
+        await send_log_message(log_msg)
         await interaction.followup.send(f"エラーが発生しました:\n{e}", ephemeral=True)
 
 
@@ -234,6 +258,8 @@ async def sync(interaction: discord.Interaction):
     # 2. グローバル同期 (全サーバーに反映し、古いコマンドを削除)
     # これが setup_hook にあった「await self.tree.sync()」に相当します
     synced_global = await client.tree.sync()
+
+    log_msg = f"[INFO] {interaction.user.display_name} さんが /sync コマンドを実行し、コマンドを同期しました。"
     response_msg = (
         "✅ コマンドの同期が完了しました。\n"
         f"・**テストギルド（{MY_GUILD.id})**: {len(synced_guild)} 個のコマンドを同期\n"
@@ -241,6 +267,7 @@ async def sync(interaction: discord.Interaction):
     )
 
     await interaction.followup.send(response_msg, ephemeral=True)
+    await send_log_message(log_msg)
 
 @sync.error
 
@@ -248,13 +275,43 @@ async def sync(interaction: discord.Interaction):
 async def sync_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     # チェックに失敗した場合(CheckFailure)
     if isinstance(error, app_commands.CheckFailure):
+        log_msg = f"[ERROR] {interaction.user.display_name} さんが /sync コマンドを実行しようとしましたが、権限がありません。"
         await interaction.response.send_message(
             "❌ **権限がありません**\nこのコマンドはBot開発者のみ実行可能です。",
             ephemeral=True
         )
+        await send_log_message(log_msg)
     else:
         # その他の予期せぬエラー
         print(error) # コンソールに表示
+
+async def send_log_message(message: str):
+    """指定されたチャンネルにログメッセージを送信するヘルパー関数"""
+    channel = client.get_channel(LOG_CHANNEL_ID)
+    if channel:
+        await channel.send(message)
+    else:
+        print(f"ログチャンネルが見つかりません: ID {LOG_CHANNEL_ID}")
+
+
+
+@client.command() #ログチャンネル限定で使えるコマンド
+@commands.check(is_target_channel)
+async def restart_bot(ctx):
+    await ctx.send("🔄 **Botを再起動します...**")
+    log_msg = f"[INFO] {ctx.author.display_name} さんが restart_bot コマンドを使用し、Botを再起動しました。"
+    await send_log_message(log_msg)
+    try:
+       python = sys.executable
+       script = os.path.abspath(__file__)
+       print("BOTを再起動しています")
+       os.execl(python, python, script)
+    except Exception as e:
+       await ctx.send(f"❌ **再起動に失敗しました:** {e}")   
+@restart_bot.error
+async def restart_bot_error(ctx, error):
+    if isinstance(error, commands.CheckFailure):
+        await ctx.send(f'❌このコマンドは専用チャンネルでのみ実行可能です！', ephemeral=True)
 
 
 # Bot起動

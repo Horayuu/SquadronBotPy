@@ -15,21 +15,14 @@ def Get_web_response():
     soup = BeautifulSoup(response.text, 'html.parser')
 
     # 3. 本文要素をCSSセレクタで特定
-    # 優先度1: 通常のDiscourse投稿本文 (.cooked) を検索
-    post_content = soup.select_one('article[data-post-number="1"] .cooked')
-
-    # post_content が None の場合、優先度3: .topic-body を検索
-    if not post_content:
-        post_content = soup.select_one('.topic-body')
-        if post_content:
-            #print("selector '.topic-body'")
-            pass
+    # 優先度1: 通常のDiscourse投稿本文 .topic-body を検索
+    post_content = soup.select_one('.topic-body')
 
     if post_content:
         # 4. 要素からテキストを抽出、整形
         full_text = post_content.get_text(separator='\n', strip=True)
 
-        # 5. 抽出されたテキストから、目的のスケジュールブロックを切り出す
+        # 5. 抽出されたテキストから、目的のブロックを切り出す
         start_marker = "High available BRs in the beginning and lower BRs by the end of the season. Stepping down of BR will happen as follows once a week:"
         end_marker_fragment = "Until the end of season, мах"
 
@@ -52,34 +45,16 @@ def Get_web_response():
     return (f"Request Error: {e}")
 
 
-def Align(extracted_block: str) -> list[str]:
-    """
-    抽出されたブロックから週ごとのスケジュール行を抽出し、
-    "MM/DD ~ MM/DD BR X.X" 形式に整形します。
+def Align(extracted_block: str) -> list[str]: #抽出されたメッセージを整形
 
-    Args:
-        extracted_block: Beautiful Soupで抽出されたテキストブロック。
-
-    Returns:
-        整形されたスケジュール文字列のリスト。
-    """
-    
     # 抽出結果を改行で分割し、処理対象の行（"week"が含まれる行）のみをフィルタリング
     lines = extracted_block.split('\n')
     
     # スケジュールデータを含む行のみをフィルタリング
     schedule_lines = [line.strip() for line in lines if "week" in line or "Until the end of season" in line]
-
     formatted_schedules = []
     
-    # 正規表現パターン:
-    # (BRの数値) (\d{2}\.\d{2}) — (\d{2}\.\d{2})
-    # 1. BRの数値 (X.X または X.XX)
-    # 2. 開始日付 (MM.DD)
-    # 3. 終了日付 (MM.DD)
-    # 終了日付の後の括弧と文字列末尾までをマッチさせています
     pattern = re.compile(r'BR\s+(\d+\.\d+)\s+\((\d{2})\.(\d{2})\s+—\s+(\d{2})\.(\d{2})\)')
-    
     for line in schedule_lines:
         match = pattern.search(line)
         
@@ -90,9 +65,7 @@ def Align(extracted_block: str) -> list[str]:
             start_month = match.group(3)
             end_day = match.group(4)
             end_month = match.group(5)
-            
-            # ご要望の形式 "MM/DD ~ MM/DD BR X.X" に整形
-            # 注意: 元のデータは MM.DD 形式（例: 01.11）のため、そのまま MM/DD に変換します。
+
             formatted_line = (
                 f"{start_month}/{start_day} ~ {end_month}/{end_day} BR {br_value}"
             )
@@ -129,4 +102,3 @@ def debug():
 
 if __name__ == "__main__":
     print(main())
-    #debug()
