@@ -5,7 +5,7 @@ import datetime
 import locale
 import re,os,sys
 
-ver = "1.3.1"
+ver = "1.4.0"
 try:
   with open("/home/py/DiscordBot_Server/SquadronBot.token") as f:
     TOKEN = f.read()
@@ -16,9 +16,11 @@ except Exception as e:
 
 try:
   import requestBR
+  import GetCurrentBR
 except ImportError:
   print("ImportError!!")
   requestBR = "Import_Error"
+  CurrentBR = "Import_Error"
 except Exception as e:
   print(e)
 
@@ -239,6 +241,28 @@ async def br_list(interaction: discord.Interaction):
         await send_log_message(log_msg)
         await interaction.followup.send(f"エラーが発生しました:\n{e}", ephemeral=True)
 
+@client.tree.command(name="br_now", description="本日のBRを表示します")
+async def br_now(interaction: discord.Interaction):
+  CurrentBR = GetCurrentBR.get_current_br()
+  if GetCurrentBR is None:
+      log_msg = f"[FATAL] {interaction.user.display_name} さんが /br_now コマンドを使用しましたが、GetCurrentBR モジュールが見つかりませんでした。"
+      await send_log_message(log_msg)
+      await interaction.response.send_message("❌ エラー: GetCurrentBR モジュールが見つかりませんでした。\n可能であれば開発者へ連絡してください", ephemeral=True)
+      return None
+  if "BR " not in CurrentBR:
+     log_msg = f"[FATAL] {interaction.user.display_name} さんが /br_now コマンドを使用しましたが、取得したBRの形式が不正でした: {CurrentBR}"
+     await send_log_message(log_msg)
+     await interaction.response.send_message(f"❌ エラー: 取得したBRの形式が不正でした:\n{CurrentBR}", ephemeral=True)
+     return None
+  else:
+    CurrentBR = CurrentBR.replace("BR ","")
+    if CurrentBR in BR_CHOICES:
+        log_msg = f"[INFO] {interaction.user.display_name} さんが /br_now コマンドを使用しました。"
+        await interaction.response.send_message(f"本日のクラン戦BRは **{CurrentBR}** です。") 
+    else:
+        log_msg = f"[FATAL] {interaction.user.display_name} さんが /br_now コマンドを使用しましたが、取得したBRの形式が不正でした: {CurrentBR}"
+        await interaction.response.send_message(f"❌ エラー: 取得したBRの形式が不正でした:\n{CurrentBR}", ephemeral=True)
+    await send_log_message(log_msg)
 
 
 def is_owner_check():
@@ -295,7 +319,7 @@ async def send_log_message(message: str):
 
 
 
-@client.command() #ログチャンネル限定で使えるコマンド
+@client.command() #ログチャンネル限定で使えるコマンド Bot再起動
 @commands.check(is_target_channel)
 async def restart_bot(ctx):
     await ctx.send("🔄 **Botを再起動します...**")
@@ -313,6 +337,17 @@ async def restart_bot_error(ctx, error):
     if isinstance(error, commands.CheckFailure):
         await ctx.send(f'❌このコマンドは専用チャンネルでのみ実行可能です！', ephemeral=True)
 
+@client.command() #ログチャンネル限定で使えるコマンド Bot停止
+@commands.check(is_target_channel)
+async def stop_bot(ctx):
+    await ctx.send("Botを停止します...")
+    log_msg = f"[INFO] {ctx.author.display_name} さんが stop_bot コマンドを使用し、Botを停止しました。"
+    await send_log_message(log_msg)
+    await client.close()
+@stop_bot.error
+async def stop_bot_error(ctx, error):
+    if isinstance(error, commands.CheckFailure):
+        await ctx.send(f'❌このコマンドは専用チャンネルでのみ実行可能です！', ephemeral=True)
 
 # Bot起動
 client.run(TOKEN)
