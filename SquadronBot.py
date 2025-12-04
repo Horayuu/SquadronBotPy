@@ -5,7 +5,7 @@ import datetime
 import locale
 import re,os,sys
 
-ver = "1.4.0"
+ver = "1.4.1"
 try:
   with open("/home/py/DiscordBot_Server/SquadronBot.token") as f:
     TOKEN = f.read()
@@ -86,9 +86,8 @@ def is_target_channel(ctx):
     return ctx.channel.id == LOG_CHANNEL_ID
 
 class MyClient(commands.Bot): #discord.Client→commands.Bot
-    def __init__(self, *, intents: discord.Intents, command_prefix: str):
-        super().__init__(intents=intents, command_prefix=command_prefix)
-        #self.tree = app_commands.CommandTree(self) ##不要
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     async def setup_hook(self):
         #コマンドをテストサーバーに即時反映
@@ -97,7 +96,9 @@ class MyClient(commands.Bot): #discord.Client→commands.Bot
 
 intents = discord.Intents.default()
 intents.message_content = True
-client = MyClient(intents=intents, command_prefix='!')
+mentions = discord.AllowedMentions(everyone=True, users=False, roles=True)
+
+client = MyClient(intents=intents,allowed_mentions=mentions, command_prefix='!')
 
 @client.event
 async def on_ready():
@@ -197,9 +198,13 @@ async def squadron(
 
     # --- メッセージ作成 ---
     # 日程1
-    log_msg = f"[INFO] {interaction.user.display_name} さんが /squadron コマンドを使用しました。"
-
-    msg = f"@here クラン戦募集、参加できる日程にリアクションをつけてください\n"
+    role = interaction.guild.get_role(1446054426849706056)
+    if role:
+        msg = f"{role.mention} クラン戦募集、参加できる日程にリアクションをつけてください\n"
+        log_msg = f"[INFO] {interaction.user.display_name} さん /squadron コマンドを使用して、ロールメンションに成功"
+    else:
+        msg = "@here クラン戦募集、参加できる日程にリアクションをつけてください\n"
+        log_msg = f"[ERROR] {interaction.user.display_name} さん /squadron コマンドを使用しましたが、ロールが見つからないためhereメンションを使用します"
     ts1_str = create_timestamp_str(schedule1)
     msg += f":one: {ts1_str} **BR {br1}**\n"
 

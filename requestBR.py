@@ -94,6 +94,7 @@ def main():
   extracted_block = Get_web_response()
   aligned_data = Align(extracted_block)
   return aligned_data
+
 def debug():
    extracted_block,aligned_data=main()
    print(f"extracted_block:{extracted_block}")

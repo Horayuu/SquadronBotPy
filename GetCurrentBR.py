@@ -5,7 +5,6 @@ with open("/home/py/DiscordBot_Server/br_cache") as f:
         cached_lines = f.readlines()
 
 
-#lines = cached_lines.strip().split('\n')
 DATE_PATTERN = re.compile(r"(\d{1,2}/\d{1,2}) ~ (\d{1,2}/\d{1,2})\s+(BR\s+\d{1,2}\.\d{1,1})")
 current_year = now.year
 def get_current_br():
