@@ -1,5 +1,8 @@
 # Squadron Scheduler Bot
 このBotはWarThunderにおけるクラン戦を想定した高機能Botです
+**※このコードは私個人用として公開しておりソースコードの使用、再配布は許可していません。**
+This repository is published for personal use.
+Unauthorized use, or redistribution of the source code is prohibited.
 
 # 主な機能
 **クラン戦招集**:     /squadronで招集を作成可能、  
