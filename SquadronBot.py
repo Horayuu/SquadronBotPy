@@ -5,7 +5,7 @@ import datetime
 import locale
 import re,os,sys
 
-ver = "1.4.1"
+ver = "1.4.3"
 try:
   with open("/home/py/DiscordBot_Server/SquadronBot.token") as f:
     TOKEN = f.read()
@@ -19,10 +19,12 @@ try:
   import GetCurrentBR
 except ImportError:
   print("ImportError!!")
-  requestBR = "Import_Error"
-  CurrentBR = "Import_Error"
+  requestBR = "[ERROR] Import_Error"
+  CurrentBR = "[ERROR] Import_Error"
 except Exception as e:
   print(e)
+  requestBR = f"[ERROR] {e}."
+  CurrentBR = f"[ERROR] {e}."
 
 async def get_cache_br():
   #キャッシュされたBRデータがないか確認
@@ -56,9 +58,9 @@ async def get_cache_br():
       print(f"キャッシュ読み込みエラー: {e}")
   if use_cache and cached_lines: #キャッシュを使用
     print(f"/br_list: キャッシュを使用します [有効期限/現在:{end_date}/{now}]")
-    return cached_lines
+    return cached_lines, use_cache
   if requestBR is None: #インポートエラー時
-    return "❌ エラー: requestBR モジュールが見つかりませんでした。\n可能であれば開発者へ連絡してください"
+    return "❌ エラー: requestBR モジュールが見つかりませんでした。\n可能であれば開発者へ連絡してください", use_cache
   print("/br_list: データを新規取得/更新します")
   new_data = requestBR.main()
   if new_data: #ファイルへ保存
@@ -67,7 +69,7 @@ async def get_cache_br():
         f.write("\n".join(new_data))
     except Exception as e:
       print(f"キャッシュ保存エラー: {e}")
-  return new_data
+  return new_data, use_cache
 
 # ロケールを日本語に設定（曜日などを日本語表記にするため）
 try:
@@ -229,7 +231,7 @@ async def br_list(interaction: discord.Interaction):
 
     try:
         # requestBRからリストを取得
-        br_data_list = await get_cache_br() #requestBR.main()
+        br_data_list, is_cached = await get_cache_br() #requestBR.main()
 
         if not br_data_list:
             log_msg = f"{interaction.user.display_name} さんが /br_list コマンドを使用しましたが、データ取得に失敗しました。\nJSONデータが取得できません。"
@@ -240,7 +242,7 @@ async def br_list(interaction: discord.Interaction):
         br_data_list = [s.rstrip() for s in br_data_list]
         formatted_text = "\n".join(br_data_list)
         await interaction.followup.send(f"```{formatted_text}```")
-        await send_log_message(log_msg)
+        await send_log_message(f"{log_msg}、キャッシュ有効：{is_cached}")
     except Exception as e:
         log_msg = f"[FATAL] {interaction.user.display_name} さんが /br_list コマンドを使用しましたが、エラーが発生しました:\n{e}"
         await send_log_message(log_msg)

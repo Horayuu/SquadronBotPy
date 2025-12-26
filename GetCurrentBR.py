@@ -8,7 +8,8 @@ def get_current_br():
       with open("/home/py/DiscordBot_Server/br_cache") as f:
         cached_lines = f.readlines()
   except FileNotFoundError:
-      return "Cache File Not Found"
+      raise FileNotFoundError("Cache File Not Found")
+      #return "Cache File Not Found"
 
   for line in cached_lines:
     match = DATE_PATTERN.search(line)
@@ -23,7 +24,12 @@ def get_current_br():
              if start_dt <= now <= end_dt:
                     return br_value
         except ValueError as e:
-             return f"Date Parsing Error: {e}"
+             raise ValueError(f"Date Parsing Error: {e}")
+             #return f"Date Parsing Error: {e}"
+        except Exception as e:
+             raise Exception(f"Unexpected Error: {e}")
+             #return f"Unexpected Error: {e}"
+  raise Exception("No Matching BR Found")
 
 if __name__ == "__main__":
     current_br=get_current_br()
