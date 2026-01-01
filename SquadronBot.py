@@ -5,7 +5,7 @@ import datetime
 import locale
 import re,os,sys
 
-ver = "1.4.4"
+ver = "1.4.5"
 try:
   with open("/home/py/DiscordBot_Server/SquadronBot.token") as f:
     TOKEN = f.read()
@@ -50,8 +50,8 @@ async def get_cache_br():
         #年跨ぎの補正
         if now.month == 1 and end_date.month == 12:
           end_date = end_date.replace(year=now.year - 1)
-        end_date = end_date + datetime.timedelta(days=1, hours=23, minutes=59, seconds=59) #期限日の翌日正午まで
-        #end_date = end_date.replace(hour=23, minute=59, second=59)
+        end_date = end_date + datetime.timedelta(days=1, hours=20) #期限日の翌日20時まで
+        # 変更タイミング< 21:30？
         if now <= end_date: #現在時刻が期限内ならキャッシュを使う
           use_cache = True
       #
