@@ -1,6 +1,9 @@
 import datetime,re
 DATE_PATTERN = re.compile(r"(\d{1,2}/\d{1,2}) ~ (\d{1,2}/\d{1,2})\s+(BR\s+\d{1,2}\.\d{1,1})")
 
+class BROutOfRange(Exception):
+    pass
+
 def get_current_br():
   now = datetime.datetime.now()
   current_year = now.year
@@ -9,7 +12,6 @@ def get_current_br():
         cached_lines = f.readlines()
   except FileNotFoundError:
       raise FileNotFoundError("Cache File Not Found")
-      #return "Cache File Not Found"
 
   for line in cached_lines:
     match = DATE_PATTERN.search(line)
@@ -23,13 +25,15 @@ def get_current_br():
              end_dt = end_dt.replace(hour=22, minute=59, second=59)
              if start_dt <= now <= end_dt:
                     return br_value
+             elif end_dt <= now:
+                    return "BR 18.0"
         except ValueError as e:
              raise ValueError(f"Date Parsing Error: {e}")
              #return f"Date Parsing Error: {e}"
         except Exception as e:
              raise Exception(f"Unexpected Error: {e}")
              #return f"Unexpected Error: {e}"
-  raise Exception("No Matching BR Found")
+  raise BROutOfRange("No Matching BR Found")
 
 if __name__ == "__main__":
     current_br=get_current_br()

@@ -50,7 +50,8 @@ async def get_cache_br():
         #年跨ぎの補正
         if now.month == 1 and end_date.month == 12:
           end_date = end_date.replace(year=now.year - 1)
-        end_date = end_date.replace(hour=23, minute=59, second=59)
+        end_date = end_date + datetime.timedelta(days=1, hours=23, minutes=59, seconds=59) #期限日の翌日正午まで
+        #end_date = end_date.replace(hour=23, minute=59, second=59)
         if now <= end_date: #現在時刻が期限内ならキャッシュを使う
           use_cache = True
       #
@@ -250,7 +251,12 @@ async def br_list(interaction: discord.Interaction):
 
 @client.tree.command(name="br_now", description="本日のBRを表示します")
 async def br_now(interaction: discord.Interaction):
-  CurrentBR = GetCurrentBR.get_current_br()
+  try:
+    CurrentBR = GetCurrentBR.get_current_br()
+  except GetCurrentBR.BROutOfRange as e:
+      log_msg = f"[FATAL] /br_nowを実行しましたが、キャッシュが期限切れです\nエラー内容:{e}"
+      await send_log_message(log_msg)
+      await interaction.response.send_message("最新の情報が取得できません、最低1時間ほど待って再試行してください", ephemeral=True)
   if GetCurrentBR is None:
       log_msg = f"[FATAL] {interaction.user.display_name} さんが /br_now コマンドを使用しましたが、GetCurrentBR モジュールが見つかりませんでした。"
       await send_log_message(log_msg)
