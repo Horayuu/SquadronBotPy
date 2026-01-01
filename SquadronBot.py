@@ -5,7 +5,7 @@ import datetime
 import locale
 import re,os,sys
 
-ver = "1.4.3"
+ver = "1.4.4"
 try:
   with open("/home/py/DiscordBot_Server/SquadronBot.token") as f:
     TOKEN = f.read()
@@ -257,6 +257,7 @@ async def br_now(interaction: discord.Interaction):
       log_msg = f"[FATAL] /br_nowを実行しましたが、キャッシュが期限切れです\nエラー内容:{e}"
       await send_log_message(log_msg)
       await interaction.response.send_message("最新の情報が取得できません、最低1時間ほど待って再試行してください", ephemeral=True)
+      return None
   if GetCurrentBR is None:
       log_msg = f"[FATAL] {interaction.user.display_name} さんが /br_now コマンドを使用しましたが、GetCurrentBR モジュールが見つかりませんでした。"
       await send_log_message(log_msg)
